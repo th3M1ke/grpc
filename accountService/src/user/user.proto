@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package user;
+
+service UserService {
+  rpc addUser (UserDto) returns (FullUserObject) {}
+  rpc getUser (UserByUid) returns (FullUserObject) {}
+  rpc getUserStream (stream UserByUid) returns (stream FullUserObject) {}
+  rpc watchUser (UserByUid) returns (stream FullUserObject) {}
+}
+
+message UserByUid {
+  string uid = 1;
+}
+
+message UserDto {
+  string email = 1;
+  string password = 2;
+}
+
+message FullUserObject {
+  string email = 1;
+  string password = 2;
+  string uid = 3;
+  int64 amount = 4;
+}
