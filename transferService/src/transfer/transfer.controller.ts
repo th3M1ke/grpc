@@ -2,16 +2,33 @@ import { Controller, Inject, OnModuleInit } from '@nestjs/common';
 import {
   ClientGrpc,
   GrpcMethod,
-  GrpcStreamMethod,
   RpcException,
+  Client
 } from '@nestjs/microservices';
 import { Observable, Subject } from 'rxjs';
 import { TransferDto, ResponseObject } from './transfer.interfaces';
 import db from '../db/db';
+import { Action } from 'src/db/db.interfaces';
+import { grpcClientToAccountOptions } from '../grpc-client.options';
+
+// import { Observable } from 'rxjs';
+
+export interface IGrpcService {
+  deposit(data: AccountTransferDto): AccountResponseObject;
+  withdraw(data: AccountTransferDto): AccountResponseObject;
+}
+
+export interface AccountTransferDto {
+  email: string;
+  uid: string;
+  amount: number;
+}
+
+export interface AccountResponseObject extends AccountTransferDto {}
 
 interface TransferService {
-  deposit(data: TransferDto): ResponseObject;
-  withdraw(data: TransferDto): ResponseObject;
+  deposit(data: AccountTransferDto): ResponseObject;
+  withdraw(data: AccountTransferDto): ResponseObject;
 }
 
 interface Mutex {
@@ -24,10 +41,16 @@ export class TransferController implements OnModuleInit {
   private transferService: TransferService;
   private mutex: Mutex = {};
 
+  @Client(grpcClientToAccountOptions)
+  private clientToAccount: ClientGrpc;
+
+  private grpcService: IGrpcService;
+
   constructor(@Inject('TRANSFER_PACKAGE') private readonly client: ClientGrpc) {}
 
   onModuleInit() {
     this.transferService = this.client.getService<TransferService>('TransferService');
+    this.grpcService = this.clientToAccount.getService<IGrpcService>('ATService');
   }
 
   @GrpcMethod('TransferService', 'deposit')
@@ -37,22 +60,20 @@ export class TransferController implements OnModuleInit {
     }
 
     this.mutex[`${uid}:${email}`] = true;
-    const user = db.findByEmailAndUid(uid, email);
 
-    if(user === undefined) {
-      throw new RpcException('Can not find user.');
-    }
+    console.log('this.grpcService: ', this.grpcService);
+    const response = this.grpcService.deposit({ email, uid, amount });
 
-    const currentAmount = user.amount + amount;
+    console.log('response: ', response);
 
-    db.editUser(uid, { amount: currentAmount });
+    db.logData(uid, email, Action.deposit, amount);
 
     this.mutex[`${uid}:${email}`] = false;
 
     return {
       uid,
       email,
-      amount: currentAmount
+      amount
     };
   }
 
@@ -64,22 +85,24 @@ export class TransferController implements OnModuleInit {
 
     this.mutex[`${uid}:${email}`] = true;
 
-    const user = db.findByEmailAndUid(uid, email);
+    const response = this.grpcService.withdraw({ email, uid, amount });
 
-    if(user === undefined) {
-      throw new RpcException('Can not find user.');
-    }
+    db.logData(uid, email, Action.withdraw, amount);
 
-    const currentAmount = user.amount - amount;
+    // if(user === undefined) {
+    //   throw new RpcException('Can not find user.');
+    // }
 
-    db.editUser(uid, { amount: currentAmount });
+    // const currentAmount = user.amount - amount;
+
+    // db.editUser(uid, { amount: currentAmount });
 
     this.mutex[`${uid}:${email}`] = false;
 
     return {
       uid,
       email,
-      amount: currentAmount
+      amount
     };
   }
 }

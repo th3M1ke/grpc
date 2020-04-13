@@ -2,7 +2,7 @@ export interface DBEntry {
     uid: string;
     email: string;
     action: Action;
-    amount: string;
+    amount: number;
     date: number;
 }
 

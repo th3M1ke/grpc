@@ -20,10 +20,10 @@ async function bootstrap() {
    */
   const app = await NestFactory.create(AppModule);
   app.connectMicroservice<MicroserviceOptions>(grpcClientOptions);
-  app.connectMicroservice<MicroserviceOptions>(grpcClientToAccountOptions);
+  // app.connectMicroservice<MicroserviceOptions>(grpcClientToAccountOptions);
 
   await app.startAllMicroservicesAsync();
   // await app.listen(3001);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  // console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

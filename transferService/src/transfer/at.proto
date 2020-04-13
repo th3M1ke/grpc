@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package at;
+
+service ATService {
+  rpc deposit (TransferDto) returns (ResponseObject) {}
+  rpc withdraw (TransferDto) returns (ResponseObject) {}
+}
+
+message TransferDto {
+  string email = 1;
+  string uid = 2;
+  int64 amount = 3;
+}
+
+message ResponseObject {
+  string email = 1;
+  string uid = 3;
+  int64 amount = 4;
+}
